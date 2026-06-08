@@ -12,15 +12,33 @@ const STATE_PRIORITY = Object.freeze({
   notification: 7,
   sweeping: 6,
   attention: 5,
+  "companion-record": 4,
   carrying: 4,
   juggling: 4,
   working: 3,
+  "companion-work-reminder": 3,
+  "companion-reunion": 2,
   thinking: 2,
   idle: 1,
+  "mini-companion-record": 1,
+  "mini-companion-work-reminder": 1,
+  "mini-companion-reunion": 1,
   sleeping: 0,
 });
 
-const ONESHOT_STATE_NAMES = ["attention", "error", "sweeping", "notification", "carrying"];
+const ONESHOT_STATE_NAMES = [
+  "attention",
+  "error",
+  "sweeping",
+  "notification",
+  "carrying",
+  "companion-reunion",
+  "companion-work-reminder",
+  "companion-record",
+  "mini-companion-reunion",
+  "mini-companion-work-reminder",
+  "mini-companion-record",
+];
 
 const SLEEP_SEQUENCE = new Set(SLEEP_SEQUENCE_STATES);
 const ONESHOT_STATES = new Set(ONESHOT_STATE_NAMES);

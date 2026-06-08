@@ -35,6 +35,7 @@ const {
   sessionSnapshotSignature,
 } = require("./state-session-snapshot");
 const { getAgentIconUrl } = require("./state-agent-icons");
+const { createCompanion, MINI_COMPANION_STATE_MAP } = require("./companion");
 
 module.exports = function initState(ctx) {
 
@@ -156,6 +157,17 @@ const UPDATE_VISUAL_PRIORITY_MAP = {
   available: STATE_PRIORITY.notification,
   downloading: STATE_PRIORITY.carrying,
 };
+
+const companion = createCompanion({
+  getMemorySnapshot: () => {
+    if (!ctx.memoryEngine || typeof ctx.memoryEngine.getMemorySnapshot !== "function") return null;
+    if (typeof ctx.memoryEngine.flush === "function") ctx.memoryEngine.flush();
+    return ctx.memoryEngine.getMemorySnapshot();
+  },
+  debugLog: (msg) => {
+    if (typeof ctx.debugLog === "function") ctx.debugLog(msg);
+  },
+});
 
 // ── Wake poll ──
 let wakePollTimer = null;
@@ -466,6 +478,9 @@ function applyState(state, svgOverride, options = {}) {
   }
 
   if (ctx.miniMode && !state.startsWith("mini-")) {
+    if (MINI_COMPANION_STATE_MAP[state]) {
+      return applyState(MINI_COMPANION_STATE_MAP[state], undefined, applyOptions);
+    }
     if (state === "notification") return applyState("mini-alert", undefined, applyOptions);
     if (state === "attention") return applyState("mini-happy", undefined, applyOptions);
     if (state === "working" || state === "thinking" || state === "juggling") {
@@ -1011,6 +1026,7 @@ function updateSession(sessionId, state, event, opts = {}) {
       }
     }
   }
+  companion.observeSessionEvent({ sessionId, state, event, opts });
   const {
     sourcePid = null,
     wtHwnd = null,
@@ -1772,11 +1788,18 @@ function stopKimiPermissionPoll(sessionId) {
 }
 
 function resolveDisplayState() {
-  return resolveDisplayStateFromSessions(sessions, {
+  const displayState = resolveDisplayStateFromSessions(sessions, {
     statePriority: STATE_PRIORITY,
     permissionLocked: hasPermissionAnimationLock(),
     updateVisualState,
     updateVisualPriority,
+  });
+  return companion.resolveDisplayState(displayState, {
+    currentState,
+    doNotDisturb: ctx.doNotDisturb,
+    miniMode: ctx.miniMode,
+    presentationLocked: hasPermissionAnimationLock() || !!updateVisualState,
+    statePriority: STATE_PRIORITY,
   });
 }
 
@@ -1914,6 +1937,7 @@ function cleanup() {
   if (ctx.memoryEngine && typeof ctx.memoryEngine.cleanup === "function") {
     try { ctx.memoryEngine.cleanup(); } catch {}
   }
+  companion.reset();
   stopStaleCleanup();
 }
 

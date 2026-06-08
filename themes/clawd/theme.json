@@ -87,6 +87,15 @@
     "carrying": [
       "clawd-working-carrying.svg"
     ],
+    "companion-reunion": [
+      "clawd-happy.svg"
+    ],
+    "companion-work-reminder": [
+      "clawd-idle-reading.svg"
+    ],
+    "companion-record": [
+      "clawd-coffee-head-flip.svg"
+    ],
     "sleeping": [
       "clawd-sleeping.svg"
     ],
@@ -153,6 +162,9 @@
       "sweeping": 5500,
       "notification": 5000,
       "carrying": 3000,
+      "companion-reunion": 3600,
+      "companion-work-reminder": 3600,
+      "companion-record": 4200,
       "working": 1000,
       "thinking": 1000
     },
@@ -161,7 +173,10 @@
       "error": 5000,
       "sweeping": 300000,
       "notification": 5000,
-      "carrying": 3000
+      "carrying": 3000,
+      "companion-reunion": 3600,
+      "companion-work-reminder": 3600,
+      "companion-record": 4200
     },
     "yawnDuration": 3000,
     "wakeDuration": 1500,
@@ -259,16 +274,31 @@
       ],
       "mini-sleep": [
         "clawd-mini-sleep.svg"
+      ],
+      "mini-companion-reunion": [
+        "clawd-mini-happy.svg"
+      ],
+      "mini-companion-work-reminder": [
+        "clawd-mini-peek.svg"
+      ],
+      "mini-companion-record": [
+        "clawd-mini-happy.svg"
       ]
     },
     "timings": {
       "minDisplay": {
         "mini-alert": 4000,
-        "mini-happy": 4000
+        "mini-happy": 4000,
+        "mini-companion-reunion": 3000,
+        "mini-companion-work-reminder": 2500,
+        "mini-companion-record": 3200
       },
       "autoReturn": {
         "mini-alert": 4000,
-        "mini-happy": 4000
+        "mini-happy": 4000,
+        "mini-companion-reunion": 3000,
+        "mini-companion-work-reminder": 2500,
+        "mini-companion-record": 3200
       }
     },
     "glyphFlips": {

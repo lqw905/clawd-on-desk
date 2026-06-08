@@ -107,6 +107,15 @@
     "carrying": [
       "calico-working-carrying.apng"
     ],
+    "companion-reunion": [
+      "calico-happy.apng"
+    ],
+    "companion-work-reminder": [
+      "calico-idle.apng"
+    ],
+    "companion-record": [
+      "calico-happy.apng"
+    ],
     "sleeping": [
       "calico-sleeping.apng"
     ],
@@ -159,6 +168,9 @@
       "sweeping": 5500,
       "notification": 5200,
       "carrying": 3000,
+      "companion-reunion": 3600,
+      "companion-work-reminder": 3600,
+      "companion-record": 4200,
       "working": 1000,
       "thinking": 1000
     },
@@ -167,7 +179,10 @@
       "error": 5000,
       "sweeping": 300000,
       "notification": 5200,
-      "carrying": 3000
+      "carrying": 3000,
+      "companion-reunion": 3600,
+      "companion-work-reminder": 3600,
+      "companion-record": 4200
     },
     "dndSkipYawn": true,
     "collapseDuration": 5200,
@@ -247,18 +262,33 @@
       ],
       "mini-sleep": [
         "calico-mini-sleep.apng"
+      ],
+      "mini-companion-reunion": [
+        "calico-mini-happy.apng"
+      ],
+      "mini-companion-work-reminder": [
+        "calico-mini-peek.apng"
+      ],
+      "mini-companion-record": [
+        "calico-mini-happy.apng"
       ]
     },
     "timings": {
       "minDisplay": {
         "mini-alert": 4000,
         "mini-happy": 4000,
-        "mini-peek": 1500
+        "mini-peek": 1500,
+        "mini-companion-reunion": 3000,
+        "mini-companion-work-reminder": 2500,
+        "mini-companion-record": 3200
       },
       "autoReturn": {
         "mini-alert": 4000,
         "mini-happy": 4000,
-        "mini-peek": 1500
+        "mini-peek": 1500,
+        "mini-companion-reunion": 3000,
+        "mini-companion-work-reminder": 2500,
+        "mini-companion-record": 3200
       }
     },
     "glyphFlips": {}

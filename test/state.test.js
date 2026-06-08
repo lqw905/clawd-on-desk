@@ -275,6 +275,78 @@ describe("resolveDisplayState()", () => {
   });
 });
 
+describe("companion integration", () => {
+  let api, ctx;
+
+  beforeEach(() => {
+    mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"] });
+    mock.timers.setTime(new Date("2026-06-08T12:00:00").getTime());
+  });
+  afterEach(() => {
+    if (api) api.cleanup();
+    mock.timers.reset();
+  });
+
+  function makeMemoryEngine(memory, onRecord = null) {
+    return {
+      recordStateEvent: (...args) => {
+        if (typeof onRecord === "function") onRecord(...args);
+      },
+      flush: () => memory,
+      getMemorySnapshot: () => JSON.parse(JSON.stringify(memory)),
+      cleanup: () => {},
+    };
+  }
+
+  it("injects a reunion companion state on the first idle event after an absence", () => {
+    const memory = {
+      index: {
+        streak: { lastActiveDate: "2026-06-01" },
+        milestones: [],
+      },
+    };
+    ctx = makeCtx({
+      processKill: () => true,
+      memoryEngine: makeMemoryEngine(memory),
+    });
+    api = require("../src/state")(ctx);
+
+    api.updateSession("s1", "idle", "SessionStart", {
+      agentId: "claude-code",
+      cwd: "/tmp",
+    });
+
+    assert.strictEqual(api.getCurrentState(), "companion-reunion");
+    assert.strictEqual(api.getCurrentSvg(), "clawd-happy.svg");
+  });
+
+  it("injects a record companion state when memory gains a milestone", () => {
+    const memory = {
+      index: {
+        streak: { lastActiveDate: "2026-06-08" },
+        milestones: [],
+      },
+    };
+    ctx = makeCtx({
+      processKill: () => true,
+      memoryEngine: makeMemoryEngine(memory, () => {
+        memory.index.milestones = [
+          { type: "sessions", value: 10, sourceId: "sessions:10", date: "2026-06-08" },
+        ];
+      }),
+    });
+    api = require("../src/state")(ctx);
+
+    api.updateSession("s1", "working", "PreToolUse", {
+      agentId: "claude-code",
+      cwd: "/tmp",
+    });
+
+    assert.strictEqual(api.getCurrentState(), "companion-record");
+    assert.strictEqual(api.getCurrentSvg(), "clawd-coffee-head-flip.svg");
+  });
+});
+
 // ═════════════════════════════════════════════════════════════════════════════
 // Group 2: setState() debounce + min display
 // ═════════════════════════════════════════════════════════════════════════════
