@@ -18,9 +18,9 @@ function formatMonthDate(year, month, day) {
 
 function formatHours(ms) {
   const hours = Math.max(0, Number(ms || 0)) / 3600000;
-  if (hours < 1) return `${Math.round(hours * 60)}m`;
-  if (hours < 10) return `${hours.toFixed(1)}h`;
-  return `${Math.round(hours)}h`;
+  if (hours < 1) return `${Math.round(hours * 60)} 分钟`;
+  if (hours < 10) return `${hours.toFixed(1)} 小时`;
+  return `${Math.round(hours)} 小时`;
 }
 
 function formatNumber(value) {
@@ -32,31 +32,67 @@ function formatNumber(value) {
 
 function formatUpdatedAt(ts) {
   const n = Number(ts || 0);
-  if (!Number.isFinite(n) || n <= 0) return "No data yet";
-  return `Updated ${new Date(n).toLocaleString()}`;
+  if (!Number.isFinite(n) || n <= 0) return "暂无数据";
+  return `更新于 ${new Date(n).toLocaleString("zh-CN")}`;
 }
 
 function levelLabel(level) {
   return {
-    first_meet: "First meet",
-    familiar: "Familiar",
-    partner: "Partner",
-    best_friend: "Best friend",
-  }[level] || level || "First meet";
+    first_meet: "初次见面",
+    familiar: "熟悉伙伴",
+    partner: "协作搭档",
+    best_friend: "最佳伙伴",
+  }[level] || level || "初次见面";
 }
 
 function growthLevelLabel(growth, legacyLevel) {
-  if (growth && growth.levelName) return growth.levelName;
+  if (growth && growth.levelId) return levelLabel(growth.levelId);
   return levelLabel(legacyLevel);
 }
 
 function milestoneLabel(item) {
   const value = formatNumber(item && item.value);
   const type = item && item.type;
-  if (type === "sessions") return `${value} sessions`;
-  if (type === "agent_events") return `${value} agent events`;
-  if (type === "active_hours") return `${value} active hours`;
-  return type ? `${type} ${value}` : "Milestone";
+  if (type === "sessions") return `${value} 次会话`;
+  if (type === "agent_events") return `${value} 次代理事件`;
+  if (type === "active_hours") return `${value} 小时活跃时间`;
+  return type ? `${type} ${value}` : "里程碑";
+}
+
+function badgeName(item) {
+  const id = item && item.id;
+  return {
+    first_session: "第一次会话",
+    ten_sessions: "十次会话",
+    hundred_sessions: "百次会话",
+    three_day_streak: "三天连续打卡",
+    seven_day_streak: "七天连续打卡",
+    thirty_day_streak: "三十天连续打卡",
+    ten_active_hours: "十小时活跃",
+    fifty_active_hours: "五十小时活跃",
+    hundred_active_hours: "百小时活跃",
+    busy_day: "忙碌的一天",
+    agent_variety: "多代理协作",
+    project_explorer: "项目探索者",
+  }[id] || (item && item.name) || id || "徽章";
+}
+
+function badgeDescription(item) {
+  const id = item && item.id;
+  return {
+    first_session: "记录到第一次本地会话。",
+    ten_sessions: "累计达到 10 次记录会话。",
+    hundred_sessions: "累计达到 100 次记录会话。",
+    three_day_streak: "连续 3 天与 Clawd 一起工作。",
+    seven_day_streak: "连续 7 天与 Clawd 一起工作。",
+    thirty_day_streak: "连续 30 天与 Clawd 一起工作。",
+    ten_active_hours: "累计记录 10 小时活跃编程时间。",
+    fifty_active_hours: "累计记录 50 小时活跃编程时间。",
+    hundred_active_hours: "累计记录 100 小时活跃编程时间。",
+    busy_day: "单日代理事件达到 100 次。",
+    agent_variety: "使用过 3 个不同的代理。",
+    project_explorer: "在 5 个不同项目目录中工作过。",
+  }[id] || (item && (item.description || item.category)) || "";
 }
 
 function classForActiveMs(activeMs, maxActiveMs) {
@@ -107,7 +143,7 @@ function renderCalendar(parent, snapshots) {
   const header = document.createElement("div");
   header.className = "section-header";
   header.appendChild(createText("div", "section-title", `${year}-${pad2(month)}`));
-  header.appendChild(createText("div", "section-note", "Daily active time"));
+  header.appendChild(createText("div", "section-note", "每日活跃时间"));
   section.appendChild(header);
 
   const calendar = document.createElement("div");
@@ -138,21 +174,21 @@ function renderGrowth(parent, index) {
   const badges = Array.isArray(index && index.badges) ? index.badges : [];
   const score = growth && Number.isFinite(Number(growth.score)) ? Number(growth.score) : 0;
   const progress = growth && Number.isFinite(Number(growth.progress)) ? Math.max(0, Math.min(1, Number(growth.progress))) : 0;
-  const nextName = growth && growth.nextLevelName ? growth.nextLevelName : "";
+  const nextId = growth && growth.nextLevelId ? growth.nextLevelId : "";
 
   const section = document.createElement("section");
   section.className = "section";
   const header = document.createElement("div");
   header.className = "section-header";
-  header.appendChild(createText("div", "section-title", "Growth"));
-  header.appendChild(createText("div", "section-note", `${formatNumber(score)} score`));
+  header.appendChild(createText("div", "section-title", "成长"));
+  header.appendChild(createText("div", "section-note", `${formatNumber(score)} 分`));
   section.appendChild(header);
 
   const panel = document.createElement("div");
   panel.className = "growth-panel";
   const body = document.createElement("div");
   body.appendChild(createText("div", "growth-title", growthLevelLabel(growth, index && index.level)));
-  body.appendChild(createText("div", "growth-sub", nextName ? `Next: ${nextName}` : "Highest level unlocked"));
+  body.appendChild(createText("div", "growth-sub", nextId ? `下一级：${levelLabel(nextId)}` : "已解锁最高等级"));
   const track = document.createElement("div");
   track.className = "progress-track";
   const fill = document.createElement("div");
@@ -165,7 +201,7 @@ function renderGrowth(parent, index) {
   const count = document.createElement("div");
   count.className = "badge-count";
   count.appendChild(createText("div", "badge-count-value", formatNumber(badges.length)));
-  count.appendChild(createText("div", "badge-count-label", "badges unlocked"));
+  count.appendChild(createText("div", "badge-count-label", "枚徽章已解锁"));
   panel.appendChild(count);
   section.appendChild(panel);
 
@@ -177,23 +213,23 @@ function renderBadges(parent, badges) {
   section.className = "section";
   const header = document.createElement("div");
   header.className = "section-header";
-  header.appendChild(createText("div", "section-title", "Badges"));
-  header.appendChild(createText("div", "section-note", `${Array.isArray(badges) ? badges.length : 0} unlocked`));
+  header.appendChild(createText("div", "section-title", "徽章"));
+  header.appendChild(createText("div", "section-note", `已解锁 ${Array.isArray(badges) ? badges.length : 0} 枚`));
   section.appendChild(header);
 
   const grid = document.createElement("div");
   grid.className = "badges";
   const items = Array.isArray(badges) ? badges.slice().sort((a, b) => (b.unlockedAt || 0) - (a.unlockedAt || 0)) : [];
   if (!items.length) {
-    grid.appendChild(createText("div", "empty-state", "Badges will unlock as local activity grows."));
+    grid.appendChild(createText("div", "empty-state", "本地活动增长后会解锁徽章。"));
   } else {
     for (const item of items) {
       const card = document.createElement("div");
       card.className = "badge";
-      card.appendChild(createText("div", "badge-name", item.name || item.id || "Badge"));
-      card.appendChild(createText("div", "badge-desc", item.description || item.category || ""));
+      card.appendChild(createText("div", "badge-name", badgeName(item)));
+      card.appendChild(createText("div", "badge-desc", badgeDescription(item)));
       const unlockedAt = Number(item.unlockedAt || 0);
-      card.appendChild(createText("div", "badge-date", unlockedAt ? new Date(unlockedAt).toLocaleString() : "Unlocked"));
+      card.appendChild(createText("div", "badge-date", unlockedAt ? new Date(unlockedAt).toLocaleString("zh-CN") : "已解锁"));
       grid.appendChild(card);
     }
   }
@@ -206,15 +242,15 @@ function renderMilestones(parent, milestones) {
   section.className = "section";
   const header = document.createElement("div");
   header.className = "section-header";
-  header.appendChild(createText("div", "section-title", "Milestones"));
-  header.appendChild(createText("div", "section-note", `${Array.isArray(milestones) ? milestones.length : 0} total`));
+  header.appendChild(createText("div", "section-title", "里程碑"));
+  header.appendChild(createText("div", "section-note", `共 ${Array.isArray(milestones) ? milestones.length : 0} 条`));
   section.appendChild(header);
 
   const list = document.createElement("div");
   list.className = "timeline";
   const items = Array.isArray(milestones) ? milestones.slice(-8).reverse() : [];
   if (!items.length) {
-    list.appendChild(createText("div", "empty-state", "Milestones will appear after Clawd has enough local activity."));
+    list.appendChild(createText("div", "empty-state", "Clawd 收集到足够本地活动后会显示里程碑。"));
   } else {
     for (const item of items) {
       const row = document.createElement("div");
@@ -233,8 +269,8 @@ function renderJournal(payload) {
   const memory = result.memory || null;
   contentEl.innerHTML = "";
   if (!memory || result.status !== "ok") {
-    contentEl.appendChild(createText("div", "error-state", result.message || "Journal data is unavailable."));
-    updatedAtEl.textContent = "Unavailable";
+    contentEl.appendChild(createText("div", "error-state", result.message || "日志数据不可用。"));
+    updatedAtEl.textContent = "不可用";
     return;
   }
   const index = memory.index || {};
@@ -245,10 +281,10 @@ function renderJournal(payload) {
 
   const metrics = document.createElement("div");
   metrics.className = "metrics";
-  metrics.appendChild(createMetric("Current streak", `${formatNumber(streak.current)}d`, `Longest ${formatNumber(streak.longest)}d`));
-  metrics.appendChild(createMetric("Active time", formatHours(totals.activeMs), `Record ${formatHours(records.highestDailyActiveMs)}`));
-  metrics.appendChild(createMetric("Sessions", formatNumber(totals.sessions), `${formatNumber(totals.agentEvents)} agent events`));
-  metrics.appendChild(createMetric("Growth", levelLabel(index.level), index.profile && index.profile.topAgent ? index.profile.topAgent : "No top agent yet"));
+  metrics.appendChild(createMetric("当前连续", `${formatNumber(streak.current)} 天`, `最长 ${formatNumber(streak.longest)} 天`));
+  metrics.appendChild(createMetric("活跃时间", formatHours(totals.activeMs), `纪录 ${formatHours(records.highestDailyActiveMs)}`));
+  metrics.appendChild(createMetric("会话", formatNumber(totals.sessions), `${formatNumber(totals.agentEvents)} 次代理事件`));
+  metrics.appendChild(createMetric("成长", growthLevelLabel(index.growth, index.level), index.profile && index.profile.topAgent ? index.profile.topAgent : "暂无常用代理"));
   contentEl.appendChild(metrics);
 
   renderGrowth(contentEl, index);
