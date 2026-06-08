@@ -809,6 +809,54 @@ describe("updateSession()", () => {
     assert.strictEqual(api.sessions.get("new1").state, "working");
   });
 
+  it("forwards updateSession events to the memory engine", () => {
+    const calls = [];
+    api.cleanup();
+    ctx = makeCtx({
+      processKill: () => true,
+      memoryEngine: {
+        recordStateEvent: (...args) => calls.push(args),
+        cleanup: () => {},
+      },
+    });
+    api = require("../src/state")(ctx);
+
+    api.updateSession("mem1", "working", "PreToolUse", {
+      agentId: "codex",
+      cwd: "/repo",
+      model: "gpt",
+      provider: "openai",
+      host: "host-a",
+    });
+
+    assert.strictEqual(calls.length, 1);
+    assert.strictEqual(calls[0][0], "mem1");
+    assert.strictEqual(calls[0][1], "working");
+    assert.strictEqual(calls[0][2], "PreToolUse");
+    assert.strictEqual(calls[0][3].agentId, "codex");
+    assert.strictEqual(calls[0][3].cwd, "/repo");
+  });
+
+  it("does not let memory engine failures break session updates", () => {
+    api.cleanup();
+    ctx = makeCtx({
+      processKill: () => true,
+      memoryEngine: {
+        recordStateEvent: () => { throw new Error("disk full"); },
+        cleanup: () => {},
+      },
+    });
+    api = require("../src/state")(ctx);
+
+    api.updateSession("mem-fail", "working", "PreToolUse", {
+      agentId: "codex",
+      cwd: "/repo",
+    });
+
+    assert.ok(api.sessions.has("mem-fail"));
+    assert.strictEqual(api.sessions.get("mem-fail").state, "working");
+  });
+
   it("existing session_id → updates state and timestamp", () => {
     update(api, { id: "s1", state: "working" });
     const t1 = api.sessions.get("s1").updatedAt;

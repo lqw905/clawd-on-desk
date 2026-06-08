@@ -1002,6 +1002,15 @@ function promoteCompletion(sessionId) {
 // (sessionTitle, etc.) don't keep extending the argument list.
 function updateSession(sessionId, state, event, opts = {}) {
   try {
+  if (ctx.memoryEngine && typeof ctx.memoryEngine.recordStateEvent === "function") {
+    try {
+      ctx.memoryEngine.recordStateEvent(sessionId, state, event, opts);
+    } catch (err) {
+      if (typeof ctx.debugLog === "function") {
+        ctx.debugLog(`memory record failed: ${err && err.message ? err.message : err}`);
+      }
+    }
+  }
   const {
     sourcePid = null,
     wtHwnd = null,
@@ -1902,6 +1911,9 @@ function cleanup() {
   for (const { timer } of kimiPermissionSuspectTimers.values()) clearTimeout(timer);
   kimiPermissionSuspectTimers.clear();
   for (const id of [...codexExitProbes.keys()]) clearCodexExitProbe(id);
+  if (ctx.memoryEngine && typeof ctx.memoryEngine.cleanup === "function") {
+    try { ctx.memoryEngine.cleanup(); } catch {}
+  }
   stopStaleCleanup();
 }
 

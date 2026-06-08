@@ -51,6 +51,8 @@ const createAgentRuntimeMain = require("./agent-runtime-main");
 const createFloatingWindowRuntime = require("./floating-window-runtime");
 const createPetWindowRuntime = require("./pet-window-runtime");
 const createMacHideController = require("./mac-hide");
+const { createMemoryStore } = require("./memory-store");
+const { createMemoryEngine } = require("./memory-engine");
 const { createHardwareBuddyAdapter } = require("./hardware-buddy-adapter");
 const {
   getFocusableLocalHudSessionIds: selectFocusableLocalHudSessionIds,
@@ -148,6 +150,14 @@ const {
 const loginItemHelpers = require("./login-item");
 const PREFS_PATH = path.join(app.getPath("userData"), "clawd-prefs.json");
 const _initialPrefsLoad = prefsModule.load(PREFS_PATH);
+let memoryEngine = null;
+try {
+  memoryEngine = createMemoryEngine({
+    store: createMemoryStore({ userDataDir: app.getPath("userData") }),
+  });
+} catch (err) {
+  console.warn("Clawd: memory engine disabled:", err && err.message ? err.message : err);
+}
 
 // Lazy helpers — these run inside the action `effect` callbacks at click time,
 // long after server.js / hooks/install.js are loaded. Wrapping them in closures
@@ -1130,6 +1140,7 @@ const _stateCtx = {
   get forceEyeResend() { return forceEyeResend; },
   set forceEyeResend(v) { setForceEyeResend(v); },
   get mouseStillSince() { return _tick ? _tick._mouseStillSince : Date.now(); },
+  get memoryEngine() { return memoryEngine; },
   get pendingPermissions() { return pendingPermissions; },
   notifyUpdaterSilentExit: () => notifyUpdaterSilentExit(),
   sendToRenderer,
