@@ -150,13 +150,64 @@ const {
 const loginItemHelpers = require("./login-item");
 const PREFS_PATH = path.join(app.getPath("userData"), "clawd-prefs.json");
 const _initialPrefsLoad = prefsModule.load(PREFS_PATH);
+let memoryStore = null;
 let memoryEngine = null;
 try {
+  memoryStore = createMemoryStore({ userDataDir: app.getPath("userData") });
   memoryEngine = createMemoryEngine({
-    store: createMemoryStore({ userDataDir: app.getPath("userData") }),
+    store: memoryStore,
   });
 } catch (err) {
   console.warn("Clawd: memory engine disabled:", err && err.message ? err.message : err);
+}
+
+function getMemorySnapshotForUi() {
+  if (!memoryEngine || typeof memoryEngine.flush !== "function") {
+    return { status: "disabled", memory: null };
+  }
+  try {
+    memoryEngine.flush();
+    return { status: "ok", memory: memoryEngine.getMemorySnapshot() };
+  } catch (err) {
+    return { status: "error", message: (err && err.message) || String(err), memory: null };
+  }
+}
+
+function getMemoryStorageBytes() {
+  const dir = memoryStore && memoryStore.paths && memoryStore.paths.dir;
+  if (!dir) return 0;
+  let total = 0;
+  const visit = (entryPath) => {
+    let stat;
+    try { stat = fs.statSync(entryPath); } catch { return; }
+    if (stat.isDirectory()) {
+      let entries = [];
+      try { entries = fs.readdirSync(entryPath); } catch { return; }
+      for (const entry of entries) visit(path.join(entryPath, entry));
+      return;
+    }
+    if (stat.isFile()) total += stat.size;
+  };
+  visit(dir);
+  return total;
+}
+
+function getMemoryStatusForUi() {
+  const result = getMemorySnapshotForUi();
+  if (result.status !== "ok") return result;
+  const memory = result.memory || {};
+  const index = memory.index || {};
+  return {
+    status: "ok",
+    memoryDir: memoryStore && memoryStore.paths ? memoryStore.paths.dir : "",
+    storageBytes: getMemoryStorageBytes(),
+    dailySnapshots: Array.isArray(memory.snapshots) ? memory.snapshots.length : 0,
+    weeklyAggregates: Array.isArray(memory.weeks) ? memory.weeks.length : 0,
+    monthlyAggregates: Array.isArray(memory.months) ? memory.months.length : 0,
+    permanentRecords: Array.isArray(index.milestones) ? index.milestones.length : 0,
+    updatedAt: index.updatedAt || 0,
+    index,
+  };
 }
 
 // Lazy helpers — these run inside the action `effect` callbacks at click time,
@@ -1116,6 +1167,7 @@ function syncSessionHudVisibilityAndBubbles() {
 let showDashboard = () => {};
 let broadcastDashboardSessionSnapshot = () => {};
 let sendDashboardI18n = () => {};
+let showJournal = () => {};
 
 // Forward hook for the #329 updater scheduler. State/mini ctxs reference
 // this via notifyUpdaterSilentExit; the actual implementation is wired
@@ -1395,6 +1447,16 @@ const _dashboard = require("./dashboard")({
 showDashboard = _dashboard.showDashboard;
 broadcastDashboardSessionSnapshot = _dashboard.broadcastSessionSnapshot;
 sendDashboardI18n = _dashboard.sendI18n;
+
+const _journalDashboard = require("./journal-dashboard")({
+  t: (key) => translate(key),
+  getMemorySnapshot: () => getMemorySnapshotForUi(),
+  getPetWindowBounds,
+  getNearestWorkArea,
+  getSettingsWindow: () => settingsWindowRuntime.getWindow(),
+  iconPath: settingsWindowRuntime.getIconPath(),
+});
+showJournal = _journalDashboard.showJournal;
 
 const _sessionHud = require("./session-hud")({
   get win() { return win; },
@@ -2541,6 +2603,7 @@ const _menuCtx = {
   checkForUpdates: (...args) => checkForUpdates(...args),
   getUpdateMenuItem: () => getUpdateMenuItem(),
   openDashboard: () => showDashboard(),
+  openJournal: () => showJournal(),
   launchClaudeSession: (mode, cwd, sessionId) => launchClaudeSession(mode, cwd, sessionId),
   newSessionWithFolder: async (t) => {
     const parent = win && !win.isDestroyed() ? win : null;
@@ -2903,7 +2966,31 @@ registerSettingsIpc({
   checkForUpdates,
   aboutHeroSvgPath: path.join(__dirname, "..", "assets", "svg", "clawd-about-hero.svg"),
   getLanWsServer: () => _lanWss,
+  getMemoryStatus: () => getMemoryStatusForUi(),
+  getMemorySnapshot: () => getMemorySnapshotForUi(),
+  openJournal: (options) => showJournal(options),
+  exportMemoryJson: async (event) => {
+    const result = getMemorySnapshotForUi();
+    if (result.status !== "ok") return result;
+    const parent = event && event.sender && BrowserWindow.fromWebContents
+      ? BrowserWindow.fromWebContents(event.sender)
+      : getSettingsWindow();
+    const save = await dialog.showSaveDialog(parent || undefined, {
+      title: "Export Clawd memory",
+      defaultPath: `clawd-memory-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (!save || save.canceled || !save.filePath) return { status: "cancel" };
+    try {
+      fs.writeFileSync(save.filePath, `${JSON.stringify(result.memory, null, 2)}\n`, "utf8");
+      return { status: "ok", path: save.filePath };
+    } catch (err) {
+      return { status: "error", message: (err && err.message) || String(err) };
+    }
+  },
 });
+
+ipcMain.handle("journal:get-memory-snapshot", () => getMemorySnapshotForUi());
 
 registerSessionIpc({
   ipcMain,

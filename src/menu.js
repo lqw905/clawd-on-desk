@@ -169,6 +169,12 @@ module.exports = function initMenu(ctx) {
           if (typeof ctx.openDashboard === "function") ctx.openDashboard();
         },
       },
+      {
+        label: t("openJournal"),
+        click: () => {
+          if (typeof ctx.openJournal === "function") ctx.openJournal();
+        },
+      },
       buildBringToPrimaryDisplayMenuItem(),
     );
     // #329: surface the update item in the tray menu. The label switches
@@ -330,6 +336,12 @@ module.exports = function initMenu(ctx) {
           if (typeof ctx.openDashboard === "function") ctx.openDashboard();
         },
       },
+      {
+        label: t("openJournal"),
+        click: () => {
+          if (typeof ctx.openJournal === "function") ctx.openJournal();
+        },
+      },
       { type: "separator" },
       {
         label: t("newSession"),
@@ -447,4 +459,3 @@ module.exports = function initMenu(ctx) {
     requestAppQuit,
   };
 };
-

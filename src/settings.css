@@ -1532,6 +1532,57 @@ html, body {
   outline-offset: 2px;
 }
 
+/* ── Memory tab ── */
+.memory-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.memory-status-item {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.memory-status-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.memory-status-value {
+  margin-top: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.memory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.memory-note {
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .memory-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Shortcuts ── */
 .shortcuts-head {
   display: flex;

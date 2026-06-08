@@ -137,6 +137,9 @@ function registerSettingsIpc(options = {}) {
     code: "quick_commands_unavailable",
     message: "Quick Commands are unavailable",
   }));
+  const getMemoryStatus = options.getMemoryStatus || (() => ({ status: "disabled" }));
+  const openJournal = options.openJournal || (() => null);
+  const exportMemoryJson = options.exportMemoryJson || (async () => ({ status: "error", message: "memory export unavailable" }));
   const now = options.now || (() => Date.now());
   const aboutHeroSvgPath = options.aboutHeroSvgPath
     || path.join(__dirname, "..", "assets", "svg", "clawd-about-hero.svg");
@@ -192,6 +195,18 @@ function registerSettingsIpc(options = {}) {
     }
     return settingsController.applyCommand(payload.action, payload.payload);
   });
+
+  handle("settings:open-journal", () => {
+    try {
+      openJournal({ source: "settings" });
+      return { status: "ok" };
+    } catch (err) {
+      return { status: "error", message: (err && err.message) || String(err) };
+    }
+  });
+
+  handle("settings:get-memory-status", () => getMemoryStatus());
+  handle("settings:export-memory-json", (event) => exportMemoryJson(event));
 
   handle("settings:pick-sound-file", async (event, payload) => {
     if (!payload || typeof payload !== "object") {

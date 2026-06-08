@@ -445,6 +445,46 @@ describe("menu dashboard action", () => {
     assert.strictEqual(called, 1);
   });
 
+  it("adds a context menu item that opens the Journal", () => {
+    const fakeElectron = {
+      app: { quit: () => {}, setActivationPolicy: () => {}, dock: { show: () => {}, hide: () => {} } },
+      BrowserWindow: function BrowserWindow() {},
+      Menu: {
+        buildFromTemplate(template) {
+          return { template };
+        },
+      },
+      Tray: function Tray() {},
+      nativeImage: {
+        createFromPath() {
+          return {
+            resize() { return this; },
+            setTemplateImage() {},
+          };
+        },
+      },
+      screen: {
+        getAllDisplays: () => [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }],
+        getCursorScreenPoint: () => ({ x: 0, y: 0 }),
+        getDisplayNearestPoint: () => ({ id: 1 }),
+      },
+    };
+    const initMenu = loadMenuWithElectron(fakeElectron);
+
+    let called = 0;
+    const ctx = buildBaseCtx({
+      openJournal: () => { called += 1; },
+    });
+
+    const menu = initMenu(ctx);
+    menu.buildContextMenu();
+
+    const openJournal = ctx.contextMenu.template.find((item) => item.label === "Open Journal");
+    assert.ok(openJournal, "context menu should expose journal entry");
+    openJournal.click();
+    assert.strictEqual(called, 1);
+  });
+
   it("adds a tray menu item that opens the Dashboard", () => {
     const fakeElectron = {
       app: { quit: () => {}, setActivationPolicy: () => {}, dock: { show: () => {}, hide: () => {} } },
@@ -486,6 +526,50 @@ describe("menu dashboard action", () => {
     const openDashboard = ctx.tray.contextMenu.template.find((item) => item.label === "Open Dashboard");
     assert.ok(openDashboard, "tray menu should expose dashboard entry");
     openDashboard.click();
+    assert.strictEqual(called, 1);
+  });
+
+  it("adds a tray menu item that opens the Journal", () => {
+    const fakeElectron = {
+      app: { quit: () => {}, setActivationPolicy: () => {}, dock: { show: () => {}, hide: () => {} } },
+      BrowserWindow: function BrowserWindow() {},
+      Menu: {
+        buildFromTemplate(template) {
+          return { template };
+        },
+      },
+      Tray: function Tray() {
+        this.setToolTip = () => {};
+        this.setContextMenu = (menu) => { this.contextMenu = menu; };
+        this.destroy = () => {};
+      },
+      nativeImage: {
+        createFromPath() {
+          return {
+            resize() { return this; },
+            setTemplateImage() {},
+          };
+        },
+      },
+      screen: {
+        getAllDisplays: () => [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }],
+        getCursorScreenPoint: () => ({ x: 0, y: 0 }),
+        getDisplayNearestPoint: () => ({ id: 1 }),
+      },
+    };
+    const initMenu = loadMenuWithElectron(fakeElectron);
+
+    let called = 0;
+    const ctx = buildBaseCtx({
+      openJournal: () => { called += 1; },
+    });
+
+    const menu = initMenu(ctx);
+    menu.createTray();
+
+    const openJournal = ctx.tray.contextMenu.template.find((item) => item.label === "Open Journal");
+    assert.ok(openJournal, "tray menu should expose journal entry");
+    openJournal.click();
     assert.strictEqual(called, 1);
   });
 });

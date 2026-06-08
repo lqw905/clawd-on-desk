@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; img-src 'self' data: file:">
+<title>Clawd Journal</title>
+<style>
+* { box-sizing: border-box; }
+
+:root {
+  --bg: #f7f7f4;
+  --surface: #ffffff;
+  --surface-alt: #f0f0ea;
+  --text: #1f2328;
+  --muted: #666b73;
+  --subtle: #8a8f98;
+  --border: rgba(31, 35, 40, 0.1);
+  --accent: #d97757;
+  --accent-strong: #b95338;
+  --green-1: #e8f2df;
+  --green-2: #bfdc9d;
+  --green-3: #8fc36a;
+  --green-4: #579f47;
+  --green-5: #2f7d35;
+  --scroll-thumb: rgba(0, 0, 0, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #191a1c;
+    --surface: #232427;
+    --surface-alt: #1d1e21;
+    --text: #f4f4f1;
+    --muted: #b2b5ba;
+    --subtle: #7d8188;
+    --border: rgba(255, 255, 255, 0.09);
+    --accent: #e18866;
+    --accent-strong: #f0a07e;
+    --green-1: #253021;
+    --green-2: #365a2c;
+    --green-3: #4d7f38;
+    --green-4: #6aaa4a;
+    --green-5: #91cf62;
+    --scroll-thumb: rgba(255, 255, 255, 0.16);
+  }
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { user-select: none; }
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-width: 0;
+}
+
+.header {
+  flex: 0 0 auto;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.subtitle {
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 22px 22px;
+}
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.metric {
+  min-width: 0;
+  min-height: 84px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.metric-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric-value {
+  margin-top: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 750;
+}
+
+.metric-sub {
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--subtle);
+  font-size: 12px;
+}
+
+.section {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.section-note {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.day {
+  min-height: 54px;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-alt);
+}
+
+.day.empty {
+  opacity: 0.35;
+}
+
+.day-date {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.day-bar {
+  height: 6px;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: var(--green-1);
+}
+.level-1 .day-bar { background: var(--green-2); }
+.level-2 .day-bar { background: var(--green-3); }
+.level-3 .day-bar { background: var(--green-4); }
+.level-4 .day-bar { background: var(--green-5); }
+
+.day-meta {
+  margin-top: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--subtle);
+  font-size: 11px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.milestone {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-alt);
+}
+
+.milestone-date {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.milestone-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-state,
+.error-state {
+  padding: 28px 18px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 650px) {
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .calendar { gap: 6px; }
+  .day { min-height: 50px; padding: 6px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="title-row">
+      <h1>Clawd Journal</h1>
+      <div class="section-note" id="updatedAt">No data yet</div>
+    </div>
+    <div class="subtitle">Activity, streaks, and milestones from local Clawd session events.</div>
+  </header>
+  <main class="content" id="content">
+    <div class="empty-state">Loading journal...</div>
+  </main>
+</div>
+<script src="./journal-renderer.js"></script>
+</body>
+</html>
