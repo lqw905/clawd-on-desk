@@ -25,24 +25,25 @@
 └─────────────────────────────────────────────────┘
 ```
 
-**存储方案**：本地 JSON 文件（`<app-folder>/memory/`，与 App 同一个文件夹），不联网、隐私安全。便携设计——拷贝整个文件夹即可同步 App+记忆。
+**存储方案**：本地 JSON 文件（`{userData}/memory/`，即 Electron `app.getPath("userData")` 下的专用目录）。默认不联网、隐私安全。便携性通过导出/导入实现，而不是写入 App 安装目录。
 
 **留存策略**：渐进式摘要（Progressive Summarization）—— 不粗暴删除，而是把原始数据随时间"蒸馏"成更浓缩的形态。扔掉细节，保留洞察。
 
 ---
 
-## 数据来源（无需 API）
+## 数据来源（先做可靠本地记账）
 
 | 数据 | 来源 |
 |---|---|
-| 每日编码时长 | state.js 已有的 session 计时 |
-| Agent 调用次数 | state.js 已有的会话追踪 |
-| Commit 数 | git hook 监听本地 `.git` |
-| Token 消耗 | agent hook 上报的数据 |
+| 每日活跃时长 | 在 `state.js#updateSession` 入口新增事件记账，基于工作态/思考态时间片累计 |
+| Session 数 | agent hook 的 `SessionStart` / `SessionEnd` / 首次事件兜底 |
+| Agent 调用/事件次数 | 现有 hook 事件流：`UserPromptSubmit`、`PreToolUse`、`PostToolUse`、`Stop` 等 |
+| Agent 分布 | `agentId`、`model`、`provider`、`host`、`cwd` 等现有 session 元数据 |
+| 项目分布 | hook 上报的 `cwd`，按目录聚合 |
 | 连续打卡天数 | 系统时钟 + 本地快照对比 |
 | 时间段判断 | `new Date()` |
 
-所有数据 Clawd 已经在采集，只需持久化和加工。
+**暂不承诺的数据**：token 消耗、文件修改数、commit 数、PR merged 等目前不是稳定的现有数据源。它们可以作为远期增强，但不能作为 Phase 1 的成功条件。
 
 ---
 
@@ -52,10 +53,10 @@
 
 | 子功能 | 描述 |
 |---|---|
-| **每日快照** | 每天结束时自动记录：编码时长、agent 调用次数、token 消耗、commit 数、文件修改数 |
+| **每日快照** | 每天结束时自动记录：活跃时长、session 数、agent 事件次数、agent 分布、项目分布 |
 | **连续打卡** | 连续编码天数追踪，断签提醒 |
-| **里程碑检测** | 第100次 commit / 第1000次 agent 调用 / 累计编码100小时 等自动触发庆祝 |
-| **个人纪录** | 最长连续编码时长、最高单日 token 消耗、最早/最晚编码时间 |
+| **里程碑检测** | 第100次 session / 第1000次 agent 事件 / 累计活跃100小时 等自动触发庆祝 |
+| **个人纪录** | 最长连续活跃时长、最高单日活跃时长、最高单日 agent 事件数、最早/最晚活跃时间 |
 | **习惯画像** | 学习你的作息：平时几点开始、周几最活跃、常用哪个 agent |
 
 ### B. 陪伴行为（Companion Behaviors）—— 增强 state 系统
@@ -116,12 +117,12 @@
 │  │  └─────────────────────────────────────┘ │ │
 │  │                                          │ │
 │  │  🏆 里程碑时间线                          │ │
-│  │  ├─ 6/2  累计 100 次 commit              │ │
-│  │  ├─ 5/20 累计 100 小时编码               │ │
-│  │  └─ 5/12 单日最高 token: 520K            │ │
+│  │  ├─ 6/2  累计 100 次 session             │ │
+│  │  ├─ 5/20 累计 100 小时活跃               │ │
+│  │  └─ 5/12 单日最高 agent 事件: 420        │ │
 │  └─────────────────────────────────────────┘ │
 │                                              │
-│  [Export JSON]  [Clear All Data]             │
+│  [Export JSON]                               │
 └──────────────────────────────────────────────┘
 ```
 
@@ -146,10 +147,10 @@
 │                                              │
 │  [📖 Open Journal Dashboard]                 │
 │                                              │
-│  Danger Zone                                │
+│  Future Danger Zone                         │
 │  [Export All Data (.json)]                   │
-│  [Clear Journal Data]                        │
-│  [Reset Growth Level]                        │
+│  [Clear Journal Data]  (Phase 2+)            │
+│  [Reset Growth Level] (Phase 2+)             │
 └──────────────────────────────────────────────┘
 ```
 
@@ -162,7 +163,7 @@
 | 🦀 伙伴 | 累计50小时 + 30天 | 比心动画、特殊音效 |
 | 🦀✨ 挚友 | 累计200小时 + 100天 | 全动画解锁、自定义昵称回应、纪念徽章 |
 
-### E. Git 活动感知
+### E. Git 活动感知（远期，默认关闭）
 
 | 事件 | Clawd 反应 |
 |---|---|
@@ -171,6 +172,8 @@
 | PR merged | 撒花/庆祝特效 |
 | Merge conflict | 紧张/出汗动画 |
 | Commit 含 "fix bug" | 擦汗 |
+
+Git 活动不能依赖“监听本地 `.git`”作为默认能力：每个仓库都要单独安装 hook，且容易与用户已有 hooks 冲突。该模块应作为 opt-in 增强实现，优先考虑 per-repo 安装、轻量 `git log` 扫描或用户手动开启。
 
 ### F. 会话摘要（退出时）
 
@@ -188,9 +191,9 @@
 ├── 🎭 陪伴行为 ─────────── 心情系统 → 基于记忆的智能行为
 ├── 📖 编年史日记 ───────── 统计面板 → 有叙事的数据
 ├── 🎯 成长系统 ─────────── 成长系统 + 时间维度
-├── 🎵 Git 活动 ─────────── 记忆引擎数据源之一
+├── 🎵 Git 活动 ─────────── 远期 opt-in 增强，不作为核心数据源
 ├── 📝 会话摘要 ─────────── 每日快照的素材来源
-└── ☁️ GitHub Gist 同步 ─── 多机记忆同步，零服务器
+└── ☁️ GitHub Gist 同步 ─── 远期 opt-in 同步，默认关闭
 ```
 
 ---
@@ -200,23 +203,25 @@
 ### Phase 1：记忆引擎 + 每日快照
 
 - 新增 `src/memory-store.js` —— JSON 文件读写，按上述数据结构存储
-- 新增 `src/memory-engine.js` —— 快照采集、打卡追踪、里程碑检测
+- 新增 `src/memory-engine.js` —— 事件记账、每日快照、打卡追踪、里程碑检测
 - 新增 `src/memory-pruner.js` —— 渐进式摘要清理，写入时 + 空闲时触发
-- 在 `src/state.js` 中接入，session 结束时写入快照
-- 数据源：现有 state 的 session 信息 + Git commit hook
+- 在 `src/state.js#updateSession` 入口接入事件记账；不要依赖 `SessionEnd` 后的 session 对象，因为当前实现会删除 session
+- 数据源：现有 agent hook 事件流 + session 元数据（`agentId`、`cwd`、`model`、`provider`、`host`）
+- 暂不接入 Git、token、文件修改数，避免把不可验证数据写进核心统计
 
 ### Phase 2：Journal Dashboard + Settings Memory 页
 
 - 新增 `src/journal-dashboard.js` —— 独立 BrowserWindow，日历热力图 + 统计卡片 + 里程碑时间线
 - 新增 `src/preload-journal.js`、`src/journal-renderer.js` —— 渲染层
-- Settings 新增 "Memory" 标签页 —— 存储状态、导出、清除管理
+- Settings 新增 "Memory" 标签页 —— 存储状态、打开 Journal、导出 JSON
 - 托盘菜单新增 "📖 Journal" 入口
+- 清除数据、重置成长等级等危险操作延后实现，避免第一版 UI 同时引入不可逆操作
 
 ### Phase 3：陪伴行为
 
 - 新增 `src/companion.js` —— 读取记忆数据，决定行为
 - 修改 `src/state.js` 状态判定逻辑，注入陪伴层
-- 久别重逢、深夜关怀、纪录突破等触发
+- 先实现低打扰行为：久别重逢、连续工作提醒、纪录突破
 - 新增对应动画状态
 
 ### Phase 4：成长系统 + 纪念徽章
@@ -229,8 +234,8 @@
 
 - 新增 `src/memory-sync.js` —— Push/Pull/Merge 逻辑
 - Settings → Memory 页新增 GitHub Sync 配置区
-- 启动时自动 Pull，快照写入后自动 Push
-- 私有 Gist，零服务器成本
+- 明确 opt-in：默认关闭；用户连接后才允许启动时 Pull、快照写入后 Push
+- 私有 Gist，零服务器成本；断网或同步失败不得影响本地记忆系统
 
 ---
 
@@ -238,12 +243,12 @@
 
 | 点 | 方案 |
 |---|---|
-| **存储** | `<app-folder>/memory/` 目录（与 exe 同级），按留存层级分文件存储 |
+| **存储** | `{userData}/memory/` 目录，按留存层级分文件存储 |
 | **大小** | 稳态后总大小 < 50KB（持续清理，不无限膨胀） |
-| **隐私** | 纯本地，不联网，数据归用户所有 |
+| **隐私** | 默认纯本地、不联网；同步必须由用户显式开启 |
 | **性能** | 启动时异步加载，清理在空闲时执行，不阻塞主循环 |
 | **迁移** | 从零开始积累，无需历史数据 |
-| **测试** | 每个新模块独立可测，mock 时间函数 |
+| **测试** | 每个新模块独立可测，mock 时间函数；覆盖跨日、时区、重复事件、SessionEnd 缺失 |
 
 ---
 
@@ -263,7 +268,7 @@
   │
   ├── 31~90 天    → 按周聚合
   │    丢弃：每日细节
-  │    保留：周总时长、最高单日、最常用 agent、commit 总数
+  │    保留：周总活跃时长、最高单日、最常用 agent、项目分布
   │
   ├── 91~365 天   → 按月聚合
   │    丢弃：周细节
@@ -280,8 +285,8 @@
 | 6月3日下午用了2.3小时 | 6月总编码时间 68 小时 |
 | 那天调了14次 agent | 月均 agent 调用 320 次 |
 | 各小时段的细粒度分布 | "你是个夜猫子，22点后产出最高" |
-| 原始 token 消耗列表 | 单日最高纪录、总累计值 |
-| 3 个月前某天 commit 了 3 次 | "第 100 次 commit 发生在 7 月 15 日" |
+| 原始事件明细列表 | 单日最高纪录、总累计值 |
+| 3 个月前某天某项目有 3 次 session | "第 100 次 session 发生在 7 月 15 日" |
 
 ### 清理时机
 
@@ -293,27 +298,41 @@
 ### 数据结构设计
 
 ```js
-// <app-folder>/memory/index.json —— 轻量索引，启动时读取
+// {userData}/memory/index.json —— 轻量索引，启动时读取
 {
+  "schemaVersion": 1,
+  "deviceId": "local-device-uuid",
   "streak": { "current": 15, "longest": 42, "lastActiveDate": "2026-06-07" },
-  "totals": { "hours": 320, "commits": 1200, "agentCalls": 8500 },
-  "records": { "longestSession": "6.2h", "highestDailyTokens": 520000, "date": "2026-05-12" },
+  "totals": { "activeMs": 1152000000, "sessions": 340, "agentEvents": 8500 },
+  "records": { "longestActiveMs": 22320000, "highestDailyActiveMs": 20880000, "highestDailyAgentEvents": 420, "date": "2026-05-12" },
   "profile": { "chronotype": "night_owl", "peakDay": "Tuesday", "topAgent": "claude-code" },
   "level": "crab_partner",
   "milestones": [
-    { "type": "commit_100", "date": "2026-04-03" },
-    { "type": "hours_100", "date": "2026-05-20" }
+    { "type": "sessions_100", "date": "2026-04-03" },
+    { "type": "active_hours_100", "date": "2026-05-20" }
   ]
 }
 
-// <app-folder>/memory/snapshots.json  —— 近30天每日快照
+// {userData}/memory/snapshots.json  —— 近30天每日快照
 [
-  { "date": "2026-06-07", "hours": 5.1, "commits": 8, "agentCalls": 42, "tokens": 180000, "agents": { "claude-code": 35, "codex": 7 } }
+  {
+    "snapshotId": "2026-06-07:local-device-uuid",
+    "deviceId": "local-device-uuid",
+    "date": "2026-06-07",
+    "activeMs": 18360000,
+    "sessions": 6,
+    "agentEvents": 42,
+    "agents": { "claude-code": 35, "codex": 7 },
+    "projects": { "/Users/me/project-a": 28, "/Users/me/project-b": 14 },
+    "updatedAt": 1780848000000
+  }
 ]
 
-// <app-folder>/memory/weeks.json     —— 31~90天，按周聚合
-// <app-folder>/memory/months.json    —— 91~365天，按月聚合
+// {userData}/memory/weeks.json     —— 31~90天，按周聚合
+// {userData}/memory/months.json    —— 91~365天，按月聚合
 ```
+
+`totals`、`records`、`profile` 是派生结果，不应作为唯一事实来源。同步或导入后应从快照/聚合层重新计算，避免重复计数或丢数据。
 
 ### 实现模块
 
@@ -350,7 +369,7 @@ function prune(snapshots) {
 ```
 ┌──────────────────┐         ┌─────────────┐         ┌──────────────────┐
 │  机器 A (公司)    │  Push   │  GitHub      │  Pull   │  机器 B (家里)    │
-│  <app-folder>/memory │ ──────→ │  Gist        │ ──────→ │  <app-folder>/memory │
+│  {userData}/memory │ ──────→ │  Gist        │ ──────→ │  {userData}/memory │
 │                  │         │  (私有)      │         │                  │
 │                  │ ←────── │              │ ←────── │                  │
 │                  │  Pull   │              │  Push   │                  │
@@ -361,15 +380,15 @@ function prune(snapshots) {
 
 ```
 1. 在 GitHub Settings → Developer settings → Personal access tokens
-   创建一个 token，只勾选 "gist" 权限，永不过期
+   创建一个 token，只勾选 "gist" 权限，建议设置明确过期时间
    
 2. 在 Clawd Settings → Memory → GitHub Sync
    粘贴 token，点击 "Connect"
    
 3. Clawd 自动创建一个名为 "clawd-memory" 的私有 Gist
    
-4. 之后每次编码结束，自动 Push ↑
-   换到另一台机器，启动时自动 Pull ↓
+4. 用户开启 Auto Sync 后，启动时自动 Pull ↓，快照写入后自动 Push ↑
+   未开启时只允许手动 Push / Pull
 ```
 
 ### 数据格式
@@ -378,36 +397,37 @@ Gist 只需要一个文件：
 
 ```
 Gist: clawd-memory (private)
-└── memory.json    ← 整个 <app-folder>/memory/ 打包成一个 JSON
+└── memory.json    ← 整个 {userData}/memory/ 打包成一个 JSON
 ```
 
 Gist 自身带版本历史，误操作了可以在 GitHub 上回滚。
 
 ### 合并策略
 
-两台机器可能都有新数据，合并规则很简单：
+两台机器可能都有新数据，合并必须以可去重的事实层为准：
 
 | 数据类型 | 策略 |
 |---|---|
-| `index.json` 中的累计值（totals） | 取较大值（谁的值大说明谁累计得更久） |
-| `index.json` 中的纪录（records） | 取较大值 |
-| `index.json` 中的画像（profile） | 本地优先，远端补充缺失字段 |
-| 快照/周/月数据 | 按日期合并，同一天的数据取较新的 |
-| 里程碑列表 | 去重后并集 |
-| 成长等级 | 取较高等级 |
+| `snapshots.json` | 以 `snapshotId` 去重；同一 `snapshotId` 取 `updatedAt` 较新的版本 |
+| 周/月聚合数据 | 以 `deviceId + period` 去重；合并后重新聚合 |
+| `index.json.totals` | 不直接合并；从快照/聚合层重新计算 |
+| `index.json.records` | 重新计算可计算项；不可计算项按 `updatedAt` 取较新 |
+| `index.json.profile` | 重新计算可计算画像；用户手动字段本地优先 |
+| 里程碑列表 | 以 `type + date + sourceId` 去重后并集 |
+| 成长等级 | 从合并后的 totals 重新计算 |
 
 ### 同步触发时机
 
 | 时机 | 操作 |
 |---|---|
-| Clawd 启动时 | 异步 Pull（不阻塞 UI） |
-| 每日快照写入后 | 异步 Push |
+| Clawd 启动时 | Auto Sync 开启后异步 Pull（不阻塞 UI） |
+| 每日快照写入后 | Auto Sync 开启后异步 Push |
 | 用户在 Settings 点击 | 手动 Push / Pull |
 | 连续 Push 失败 3 次 | 静默跳过，下次启动重试 |
 
 ### 安全设计
 
-- Token 存在本地 `<app-folder>/memory/.gist-token`，不进入 Git
+- Token 不进入 `memory.json`，不进入 Git。优先使用系统 Keychain；若暂时使用文件，必须存于 `{userData}` 下并设置 `0600` 权限
 - Gist 默认创建为 **私有**（只有你自己能看到）
 - 断网不影响 Clawd 正常运行，同步是纯可选的增强
 
@@ -415,8 +435,8 @@ Gist 自身带版本历史，误操作了可以在 GitHub 上回滚。
 
 ```js
 // src/memory-sync.js
-const GIST_ID_FILE = '<app-folder>/memory/.gist-id'
-const TOKEN_FILE   = '<app-folder>/memory/.gist-token'
+const GIST_ID_FILE = '{userData}/memory/.gist-id'
+const TOKEN_FILE   = '{userData}/memory/.gist-token' // fallback only; prefer Keychain
 
 async function push() {
   const token = readToken()
@@ -433,8 +453,9 @@ async function pull() {
   const token = readToken()
   const gistId = readGistId()
   const res = await fetch(`https://api.github.com/gists/${gistId}`)
-  const remote = JSON.parse(res.json().files['memory.json'].content)
-  const merged = mergeMemory(local, remote)  // 按合并策略执行
+  const body = await res.json()
+  const remote = JSON.parse(body.files['memory.json'].content)
+  const merged = mergeMemory(local, remote)  // 按 snapshotId/deviceId 合并，再重新计算派生结果
   writeMemory(merged)
 }
 ```
@@ -471,7 +492,7 @@ async function pull() {
 
 ## 设计原则
 
-1. **隐私优先**：所有数据存本地，不联网，不上传
+1. **隐私优先**：默认所有数据存本地，不联网，不上传；云同步必须显式开启
 2. **渐进增强**：不对现有功能做 breaking change，逐层叠加
 3. **感知不打扰**：陪伴行为是 subtle 的，不弹窗、不打断工作流
 4. **越用越好**：价值随时间增长，给用户长期使用的理由
