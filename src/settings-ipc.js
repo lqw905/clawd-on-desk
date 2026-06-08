@@ -140,6 +140,10 @@ function registerSettingsIpc(options = {}) {
   const getMemoryStatus = options.getMemoryStatus || (() => ({ status: "disabled" }));
   const openJournal = options.openJournal || (() => null);
   const exportMemoryJson = options.exportMemoryJson || (async () => ({ status: "error", message: "memory export unavailable" }));
+  const getMemorySyncStatus = options.getMemorySyncStatus || (async () => ({ status: "disabled" }));
+  const configureMemorySync = options.configureMemorySync || (async () => ({ status: "error", message: "memory sync unavailable" }));
+  const pullMemorySync = options.pullMemorySync || (async () => ({ status: "error", message: "memory sync unavailable" }));
+  const pushMemorySync = options.pushMemorySync || (async () => ({ status: "error", message: "memory sync unavailable" }));
   const now = options.now || (() => Date.now());
   const aboutHeroSvgPath = options.aboutHeroSvgPath
     || path.join(__dirname, "..", "assets", "svg", "clawd-about-hero.svg");
@@ -207,6 +211,10 @@ function registerSettingsIpc(options = {}) {
 
   handle("settings:get-memory-status", () => getMemoryStatus());
   handle("settings:export-memory-json", (event) => exportMemoryJson(event));
+  handle("settings:get-memory-sync-status", () => getMemorySyncStatus());
+  handle("settings:configure-memory-sync", (_event, payload) => configureMemorySync(payload));
+  handle("settings:pull-memory-sync", () => pullMemorySync());
+  handle("settings:push-memory-sync", () => pushMemorySync());
 
   handle("settings:pick-sound-file", async (event, payload) => {
     if (!payload || typeof payload !== "object") {

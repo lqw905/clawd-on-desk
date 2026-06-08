@@ -1577,8 +1577,46 @@ html, body {
   margin-top: 12px;
 }
 
+.memory-sync-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.memory-sync-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.memory-sync-field,
+.memory-sync-checkbox {
+  min-width: 0;
+}
+
+.memory-sync-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.memory-sync-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
-  .memory-status-grid {
+  .memory-status-grid,
+  .memory-sync-form {
     grid-template-columns: 1fr;
   }
 }

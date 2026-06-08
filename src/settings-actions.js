@@ -118,6 +118,9 @@ const { EVENTS: TELEGRAM_MIGRATION_EVENTS } = require("./telegram-migration-stat
 const {
   validateHardwareBuddySettings,
 } = require("./hardware-buddy-settings");
+const {
+  normalizeMemorySyncConfig,
+} = require("./memory-sync");
 
 const TELEGRAM_MIGRATION_RENDERER_EVENTS = new Set([
   TELEGRAM_MIGRATION_EVENTS.USER_TEST_NATIVE,
@@ -406,6 +409,18 @@ const updateRegistry = {
 
   hardwareBuddy(value) {
     return validateHardwareBuddySettings(value);
+  },
+
+  memorySync(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return { status: "error", message: "memorySync must be a plain object" };
+    }
+    const normalized = normalizeMemorySyncConfig(value);
+    const rawGistId = typeof value.gistId === "string" ? value.gistId.trim() : "";
+    if (rawGistId && normalized.gistId !== rawGistId) {
+      return { status: "error", message: "memorySync.gistId contains invalid characters" };
+    }
+    return { status: "ok" };
   },
 
   shortcuts: {

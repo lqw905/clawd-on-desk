@@ -84,6 +84,34 @@ describe("memory engine", () => {
     assert.strictEqual(snapshot.agentEvents, 4);
     assert.strictEqual(snapshot.sessionKeys.length, 1);
   });
+
+  it("notifies after flush and can replace persisted memory without re-notifying", () => {
+    let now = at("2026-06-08T11:00:00+08:00");
+    const saves = [];
+    const engine = createMemoryEngine({
+      store: createMemoryStore({ memoryDir: tmpDir }),
+      now: () => now,
+      flushDelayMs: 60_000,
+      onAfterSave: (snapshot) => saves.push(snapshot),
+    });
+    engine.recordStateEvent("s1", "working", "SessionStart", { agentId: "codex", cwd: "/repo" });
+    engine.flush();
+    assert.strictEqual(saves.length, 1);
+
+    const replacement = {
+      deviceId: "replacement",
+      snapshots: [],
+      weeks: [],
+      months: [],
+      index: { milestones: [], badges: [], totals: {}, profile: {}, updatedAt: now },
+    };
+    const next = engine.replaceMemory(replacement, { notify: false });
+    assert.strictEqual(next.deviceId, "replacement");
+    assert.strictEqual(saves.length, 1);
+
+    const index = JSON.parse(fs.readFileSync(path.join(tmpDir, "index.json"), "utf8"));
+    assert.strictEqual(index.updatedAt, now);
+  });
 });
 
 describe("memory pruner", () => {

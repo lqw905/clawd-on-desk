@@ -70,6 +70,12 @@ describe("prefs.getDefaults", () => {
       completionOutputMode: "off",
       r3DirectSendEnabled: false,
     });
+    assert.deepStrictEqual(d.memorySync, {
+      enabled: false,
+      gistId: "",
+      autoPullOnStartup: true,
+      autoPushOnSave: true,
+    });
   });
 
   it("seeds all known agents as enabled", () => {
@@ -463,6 +469,23 @@ describe("prefs.validate", () => {
     const d = prefs.getDefaults();
     assert.deepStrictEqual(a, d);
     assert.deepStrictEqual(b, d);
+  });
+
+  it("normalizes memory sync settings without enabling by default", () => {
+    const v = prefs.validate({
+      memorySync: {
+        enabled: true,
+        gistId: "bad id",
+        autoPullOnStartup: false,
+        autoPushOnSave: false,
+      },
+    });
+    assert.deepStrictEqual(v.memorySync, {
+      enabled: true,
+      gistId: "",
+      autoPullOnStartup: false,
+      autoPushOnSave: false,
+    });
   });
 
   it("positionDisplay defaults to null and round-trips a valid snapshot", () => {

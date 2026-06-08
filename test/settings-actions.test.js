@@ -1364,6 +1364,25 @@ describe("updateRegistry cross-field validators (showTray/showDock)", () => {
   });
 });
 
+describe("updateRegistry memorySync", () => {
+  it("accepts valid opt-in gist sync settings", () => {
+    const result = updateRegistry.memorySync({
+      enabled: true,
+      gistId: "abc_123-def",
+      autoPullOnStartup: true,
+      autoPushOnSave: false,
+    });
+    assert.strictEqual(result.status, "ok");
+  });
+
+  it("rejects malformed memory sync settings", () => {
+    assert.strictEqual(updateRegistry.memorySync(null).status, "error");
+    const result = updateRegistry.memorySync({ enabled: true, gistId: "bad id" });
+    assert.strictEqual(result.status, "error");
+    assert.match(result.message, /gistId/);
+  });
+});
+
 describe("removeTheme command", () => {
   const baseSnapshot = { ...prefs.getDefaults(), themeOverrides: {} };
 

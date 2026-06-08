@@ -53,6 +53,10 @@ const createPetWindowRuntime = require("./pet-window-runtime");
 const createMacHideController = require("./mac-hide");
 const { createMemoryStore } = require("./memory-store");
 const { createMemoryEngine } = require("./memory-engine");
+const {
+  createGitHubGistTokenStore,
+  createMemorySync,
+} = require("./memory-sync");
 const { createHardwareBuddyAdapter } = require("./hardware-buddy-adapter");
 const {
   getFocusableLocalHudSessionIds: selectFocusableLocalHudSessionIds,
@@ -152,10 +156,19 @@ const PREFS_PATH = path.join(app.getPath("userData"), "clawd-prefs.json");
 const _initialPrefsLoad = prefsModule.load(PREFS_PATH);
 let memoryStore = null;
 let memoryEngine = null;
+let memorySyncRuntime = null;
 try {
   memoryStore = createMemoryStore({ userDataDir: app.getPath("userData") });
   memoryEngine = createMemoryEngine({
     store: memoryStore,
+    onAfterSave: (memory) => {
+      if (!memorySyncRuntime || typeof memorySyncRuntime.schedulePush !== "function") return;
+      try {
+        memorySyncRuntime.schedulePush(memory);
+      } catch (err) {
+        console.warn("Clawd: memory sync auto-push scheduling failed:", err && err.message ? err.message : err);
+      }
+    },
   });
 } catch (err) {
   console.warn("Clawd: memory engine disabled:", err && err.message ? err.message : err);
@@ -364,6 +377,21 @@ const _settingsController = createSettingsController({
     },
   },
 });
+
+try {
+  if (memoryEngine) {
+    memorySyncRuntime = createMemorySync({
+      memoryEngine,
+      settingsController: _settingsController,
+      tokenStore: createGitHubGistTokenStore({
+        filePath: path.join(app.getPath("userData"), "memory-sync-github.env"),
+      }),
+      log: (message) => console.warn(`Clawd: ${message}`),
+    });
+  }
+} catch (err) {
+  console.warn("Clawd: memory sync disabled:", err && err.message ? err.message : err);
+}
 
 // Mirror of `_settingsController.get("lang")` so existing sync read sites in
 // menu.js / state.js / etc. don't have to round-trip through the controller.
@@ -2969,6 +2997,18 @@ registerSettingsIpc({
   getLanWsServer: () => _lanWss,
   getMemoryStatus: () => getMemoryStatusForUi(),
   getMemorySnapshot: () => getMemorySnapshotForUi(),
+  getMemorySyncStatus: () => memorySyncRuntime
+    ? memorySyncRuntime.getStatus()
+    : { status: "disabled", message: "memory sync unavailable" },
+  configureMemorySync: (payload) => memorySyncRuntime
+    ? memorySyncRuntime.configure(payload)
+    : { status: "error", message: "memory sync unavailable" },
+  pullMemorySync: () => memorySyncRuntime
+    ? memorySyncRuntime.pull({ force: true })
+    : { status: "error", message: "memory sync unavailable" },
+  pushMemorySync: () => memorySyncRuntime
+    ? memorySyncRuntime.push({ force: true })
+    : { status: "error", message: "memory sync unavailable" },
   openJournal: (options) => showJournal(options),
   exportMemoryJson: async (event) => {
     const result = getMemorySnapshotForUi();
@@ -3379,6 +3419,13 @@ if (!gotTheLock) {
       console.warn("Clawd: migration controller init failed:", err && err.message);
     });
     createWindow();
+    try {
+      if (memorySyncRuntime && typeof memorySyncRuntime.pullOnStartup === "function") {
+        memorySyncRuntime.pullOnStartup();
+      }
+    } catch (err) {
+      console.warn("Clawd: memory sync startup pull failed:", err && err.message ? err.message : err);
+    }
     // macOS: bridge the OS app-hidden state (⌘H / Dock right-click → 隐藏) to the
     // pet. Pet windows are setCanHide:NO, so the OS marks the app hidden but the
     // windows refuse to vanish, and an inactive-app Dock Hide fires no
@@ -3463,6 +3510,7 @@ if (!gotTheLock) {
     if (animationOverridesMain) animationOverridesMain.cleanup();
     try { _remoteSshIpc.dispose(); } catch {}
     try { _remoteSshRuntime.cleanup(); } catch {}
+    try { if (memorySyncRuntime) memorySyncRuntime.dispose(); } catch {}
     if (hitWin && !hitWin.isDestroyed()) hitWin.destroy();
   });
 

@@ -74,6 +74,7 @@ function createMemoryEngine(options = {}) {
   const now = typeof options.now === "function" ? options.now : Date.now;
   const setTimer = typeof options.setTimeout === "function" ? options.setTimeout : setTimeout;
   const clearTimer = typeof options.clearTimeout === "function" ? options.clearTimeout : clearTimeout;
+  const onAfterSave = typeof options.onAfterSave === "function" ? options.onAfterSave : null;
   const flushDelayMs = Number.isFinite(Number(options.flushDelayMs))
     ? Math.max(0, Number(options.flushDelayMs))
     : DEFAULT_FLUSH_DELAY_MS;
@@ -154,11 +155,24 @@ function createMemoryEngine(options = {}) {
     memory = pruneMemory(memory, { now: now() });
     memory = store.saveMemory(memory);
     dirty = false;
+    if (onAfterSave) {
+      try { onAfterSave(getMemorySnapshot()); } catch {}
+    }
     return memory;
   }
 
   function getMemorySnapshot() {
     return JSON.parse(JSON.stringify(memory));
+  }
+
+  function replaceMemory(nextMemory, replaceOptions = {}) {
+    memory = pruneMemory(nextMemory, { now: now() });
+    memory = store.saveMemory(memory);
+    dirty = false;
+    if (replaceOptions.notify !== false && onAfterSave) {
+      try { onAfterSave(getMemorySnapshot()); } catch {}
+    }
+    return getMemorySnapshot();
   }
 
   function cleanup() {
@@ -171,6 +185,7 @@ function createMemoryEngine(options = {}) {
     flush,
     cleanup,
     getMemorySnapshot,
+    replaceMemory,
   };
 }
 

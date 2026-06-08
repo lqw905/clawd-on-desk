@@ -262,6 +262,16 @@ const SCHEMA = {
     defaultFactory: () => ({ ...DEFAULT_HARDWARE_BUDDY_SETTINGS }),
     normalize: normalizeHardwareBuddySettings,
   },
+  memorySync: {
+    type: "object",
+    defaultFactory: () => ({
+      enabled: false,
+      gistId: "",
+      autoPullOnStartup: true,
+      autoPushOnSave: true,
+    }),
+    normalize: normalizeMemorySync,
+  },
   // Background update-check toggle. When true, the scheduler in updater.js
   // runs a quiet GitHub discovery on a 12-hour cycle (packaged builds only).
   // Default on per #329.
@@ -731,6 +741,20 @@ function normalizeThemeVariant(value, defaultsValue) {
     out[themeId] = variantId;
   }
   return out;
+}
+
+function normalizeMemorySync(value, defaultsValue) {
+  const raw = isPlainObject(value) ? value : {};
+  const fallback = isPlainObject(defaultsValue)
+    ? defaultsValue
+    : { enabled: false, gistId: "", autoPullOnStartup: true, autoPushOnSave: true };
+  const gistId = typeof raw.gistId === "string" ? raw.gistId.trim().slice(0, 128) : fallback.gistId || "";
+  return {
+    enabled: raw.enabled === true,
+    gistId: /^[A-Za-z0-9_-]+$/.test(gistId) ? gistId : "",
+    autoPullOnStartup: typeof raw.autoPullOnStartup === "boolean" ? raw.autoPullOnStartup : fallback.autoPullOnStartup !== false,
+    autoPushOnSave: typeof raw.autoPushOnSave === "boolean" ? raw.autoPushOnSave : fallback.autoPushOnSave !== false,
+  };
 }
 
 // ── Disk I/O ──
