@@ -62,6 +62,9 @@ describe("memory engine", () => {
     assert.strictEqual(index.totals.agentEvents, 3);
     assert.strictEqual(index.totals.activeMs, 7 * 60 * 1000);
     assert.strictEqual(index.profile.topAgent, "codex");
+    assert.strictEqual(index.growth.levelId, "first_meet");
+    assert.ok(Array.isArray(index.badges));
+    assert.ok(index.badges.some((badge) => badge.id === "first_session"));
   });
 
   it("does not double-count the same session on repeated events", () => {
@@ -124,5 +127,7 @@ describe("memory pruner", () => {
     assert.strictEqual(pruned.index.totals.activeMs, 180_000);
     assert.strictEqual(pruned.index.totals.sessions, 3);
     assert.strictEqual(pruned.index.totals.agentEvents, 5);
+    assert.strictEqual(pruned.index.growth.levelId, "first_meet");
+    assert.ok(pruned.index.badges.some((badge) => badge.id === "first_session"));
   });
 });

@@ -146,6 +146,9 @@
     "companion-record": [
       "cloudling-attention.svg"
     ],
+    "companion-unlock": [
+      "cloudling-attention.svg"
+    ],
     "sleeping": [
       "cloudling-sleeping.svg"
     ],
@@ -207,6 +210,7 @@
       "companion-reunion": 3600,
       "companion-work-reminder": 3600,
       "companion-record": 4200,
+      "companion-unlock": 4200,
       "working": 1000,
       "thinking": 1000
     },
@@ -218,7 +222,8 @@
       "carrying": 4500,
       "companion-reunion": 3600,
       "companion-work-reminder": 3600,
-      "companion-record": 4200
+      "companion-record": 4200,
+      "companion-unlock": 4200
     },
     "yawnDuration": 9030,
     "collapseDuration": 4700,
@@ -315,6 +320,9 @@
       ],
       "mini-companion-record": [
         "cloudling-mini-happy.svg"
+      ],
+      "mini-companion-unlock": [
+        "cloudling-mini-happy.svg"
       ]
     },
     "timings": {
@@ -324,7 +332,8 @@
         "mini-peek": 1500,
         "mini-companion-reunion": 3000,
         "mini-companion-work-reminder": 2500,
-        "mini-companion-record": 3200
+        "mini-companion-record": 3200,
+        "mini-companion-unlock": 3200
       },
       "autoReturn": {
         "mini-alert": 2600,
@@ -332,7 +341,8 @@
         "mini-peek": 1500,
         "mini-companion-reunion": 3000,
         "mini-companion-work-reminder": 2500,
-        "mini-companion-record": 3200
+        "mini-companion-record": 3200,
+        "mini-companion-unlock": 3200
       }
     },
     "glyphFlips": {}

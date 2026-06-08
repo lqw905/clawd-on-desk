@@ -48,6 +48,7 @@
     statusNode.appendChild(createStatusItem(t("memoryWeeklyAggregates"), String(status.weeklyAggregates || 0)));
     statusNode.appendChild(createStatusItem(t("memoryMonthlyAggregates"), String(status.monthlyAggregates || 0)));
     statusNode.appendChild(createStatusItem(t("memoryPermanentRecords"), String(status.permanentRecords || 0)));
+    statusNode.appendChild(createStatusItem(t("memoryUnlockedBadges"), String(status.unlockedBadges || 0)));
     statusNode.appendChild(createStatusItem(t("memoryLastUpdated"), formatUpdatedAt(status.updatedAt)));
   }
 

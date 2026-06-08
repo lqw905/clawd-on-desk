@@ -7,12 +7,14 @@ const COMPANION_STATES = Object.freeze({
   reunion: "companion-reunion",
   workReminder: "companion-work-reminder",
   record: "companion-record",
+  unlock: "companion-unlock",
 });
 
 const MINI_COMPANION_STATE_MAP = Object.freeze({
   "companion-reunion": "mini-companion-reunion",
   "companion-work-reminder": "mini-companion-work-reminder",
   "companion-record": "mini-companion-record",
+  "companion-unlock": "mini-companion-unlock",
 });
 
 const ACTIVE_STATES = new Set(["working", "thinking", "carrying", "juggling"]);
@@ -64,6 +66,20 @@ function getMilestoneIds(memory) {
   return new Set(milestones.map(normalizeMilestoneSourceId).filter(Boolean));
 }
 
+function getBadgeIds(memory) {
+  const badges = memory && memory.index && Array.isArray(memory.index.badges)
+    ? memory.index.badges
+    : [];
+  return new Set(badges.map((badge) => badge && badge.id).filter((id) => typeof id === "string" && id));
+}
+
+function getGrowthLevelId(memory) {
+  const growthLevel = memory && memory.index && memory.index.growth && memory.index.growth.levelId;
+  if (typeof growthLevel === "string" && growthLevel) return growthLevel;
+  const legacyLevel = memory && memory.index && memory.index.level;
+  return typeof legacyLevel === "string" && legacyLevel ? legacyLevel : "first_meet";
+}
+
 function getLastActiveDate(memory) {
   const date = memory && memory.index && memory.index.streak && memory.index.streak.lastActiveDate;
   return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "";
@@ -74,6 +90,7 @@ function canUseCue(cue, displayState) {
   if (cue.type === "reunion") return displayState === "idle";
   if (cue.type === "workReminder") return ACTIVE_STATES.has(displayState);
   if (cue.type === "record") return displayState === "idle" || ACTIVE_STATES.has(displayState);
+  if (cue.type === "unlock") return displayState === "idle" || ACTIVE_STATES.has(displayState);
   return false;
 }
 
@@ -88,6 +105,8 @@ function createCompanion(options = {}) {
   let initialized = false;
   let lastKnownActiveDate = "";
   let seenMilestoneIds = new Set();
+  let seenBadgeIds = new Set();
+  let currentLevelId = "first_meet";
   let pendingCue = null;
   let lastCueAt = 0;
   let lastRecordCueAt = 0;
@@ -109,6 +128,8 @@ function createCompanion(options = {}) {
     const memory = readMemory();
     lastKnownActiveDate = getLastActiveDate(memory);
     seenMilestoneIds = getMilestoneIds(memory);
+    seenBadgeIds = getBadgeIds(memory);
+    currentLevelId = getGrowthLevelId(memory);
     initialized = true;
   }
 
@@ -167,6 +188,24 @@ function createCompanion(options = {}) {
     }
   }
 
+  function observeUnlocks(at) {
+    const memory = readMemory();
+    const badgeIds = getBadgeIds(memory);
+    const nextLevelId = getGrowthLevelId(memory);
+    let hasNewBadge = false;
+    for (const id of badgeIds) {
+      if (!seenBadgeIds.has(id)) {
+        hasNewBadge = true;
+        break;
+      }
+    }
+    const leveledUp = nextLevelId && nextLevelId !== currentLevelId;
+    seenBadgeIds = badgeIds;
+    currentLevelId = nextLevelId || currentLevelId;
+    if (!hasNewBadge && !leveledUp) return;
+    enqueue("unlock", COMPANION_STATES.unlock, leveledUp ? "level_unlock" : "badge_unlock", at);
+  }
+
   function observeSessionEvent(payload = {}) {
     ensureInitialized();
     const at = Number.isFinite(Number(payload.now)) ? Number(payload.now) : now();
@@ -182,6 +221,7 @@ function createCompanion(options = {}) {
       lastKnownActiveDate = today;
     }
     observeWorkReminder(payload.sessionId, state, at);
+    observeUnlocks(at);
     observeRecords(at);
     return pendingCue;
   }
@@ -206,6 +246,8 @@ function createCompanion(options = {}) {
     initialized = false;
     lastKnownActiveDate = "";
     seenMilestoneIds = new Set();
+    seenBadgeIds = new Set();
+    currentLevelId = "first_meet";
     pendingCue = null;
     lastCueAt = 0;
     lastRecordCueAt = 0;

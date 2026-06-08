@@ -205,6 +205,7 @@ function getMemoryStatusForUi() {
     weeklyAggregates: Array.isArray(memory.weeks) ? memory.weeks.length : 0,
     monthlyAggregates: Array.isArray(memory.months) ? memory.months.length : 0,
     permanentRecords: Array.isArray(index.milestones) ? index.milestones.length : 0,
+    unlockedBadges: Array.isArray(index.badges) ? index.badges.length : 0,
     updatedAt: index.updatedAt || 0,
     index,
   };

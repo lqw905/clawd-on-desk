@@ -345,6 +345,35 @@ describe("companion integration", () => {
     assert.strictEqual(api.getCurrentState(), "companion-record");
     assert.strictEqual(api.getCurrentSvg(), "clawd-coffee-head-flip.svg");
   });
+
+  it("injects an unlock companion state when memory gains a badge", () => {
+    const memory = {
+      index: {
+        streak: { lastActiveDate: "2026-06-08" },
+        milestones: [],
+        growth: { levelId: "first_meet" },
+        badges: [],
+      },
+    };
+    ctx = makeCtx({
+      processKill: () => true,
+      memoryEngine: makeMemoryEngine(memory, () => {
+        memory.index.growth = { levelId: "familiar" };
+        memory.index.badges = [
+          { id: "ten_sessions", name: "Ten Sessions", unlockedAt: Date.now() },
+        ];
+      }),
+    });
+    api = require("../src/state")(ctx);
+
+    api.updateSession("s1", "working", "PostToolUse", {
+      agentId: "claude-code",
+      cwd: "/tmp",
+    });
+
+    assert.strictEqual(api.getCurrentState(), "companion-unlock");
+    assert.strictEqual(api.getCurrentSvg(), "clawd-happy.svg");
+  });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════

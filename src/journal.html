@@ -147,6 +147,97 @@ h1 {
   font-size: 12px;
 }
 
+.growth-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.growth-title {
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 750;
+}
+
+.growth-sub {
+  margin-top: 5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.progress-track {
+  height: 8px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-alt);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.badge-count {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  text-align: right;
+}
+
+.badge-count-value {
+  font-size: 24px;
+  font-weight: 780;
+}
+
+.badge-count-label {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.badges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.badge {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-alt);
+}
+
+.badge-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 750;
+}
+
+.badge-desc {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.badge-date {
+  margin-top: 6px;
+  color: var(--subtle);
+  font-size: 11px;
+}
+
+.badges .empty-state {
+  grid-column: 1 / -1;
+}
+
 .section {
   margin-top: 14px;
   padding: 14px;
@@ -258,6 +349,9 @@ h1 {
 
 @media (max-width: 650px) {
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .growth-panel { grid-template-columns: 1fr; }
+  .badge-count { text-align: left; }
+  .badges { grid-template-columns: 1fr; }
   .calendar { gap: 6px; }
   .day { min-height: 50px; padding: 6px; }
 }

@@ -158,6 +158,17 @@ const UPDATE_VISUAL_PRIORITY_MAP = {
   downloading: STATE_PRIORITY.carrying,
 };
 
+const COMPANION_TIMING_DEFAULTS = Object.freeze({
+  "companion-reunion": 3600,
+  "companion-work-reminder": 3600,
+  "companion-record": 4200,
+  "companion-unlock": 4200,
+  "mini-companion-reunion": 3000,
+  "mini-companion-work-reminder": 2500,
+  "mini-companion-record": 3200,
+  "mini-companion-unlock": 3200,
+});
+
 const companion = createCompanion({
   getMemorySnapshot: () => {
     if (!ctx.memoryEngine || typeof ctx.memoryEngine.getMemorySnapshot !== "function") return null;
@@ -289,8 +300,12 @@ function refreshTheme() {
   if (theme.miniMode && theme.miniMode.states) {
     Object.assign(STATE_SVGS, theme.miniMode.states);
   }
-  MIN_DISPLAY_MS = theme.timings.minDisplay;
-  AUTO_RETURN_MS = theme.timings.autoReturn;
+  MIN_DISPLAY_MS = { ...(theme.timings.minDisplay || {}) };
+  AUTO_RETURN_MS = { ...(theme.timings.autoReturn || {}) };
+  for (const [stateKey, duration] of Object.entries(COMPANION_TIMING_DEFAULTS)) {
+    if (!Number.isFinite(Number(MIN_DISPLAY_MS[stateKey]))) MIN_DISPLAY_MS[stateKey] = duration;
+    if (!Number.isFinite(Number(AUTO_RETURN_MS[stateKey]))) AUTO_RETURN_MS[stateKey] = duration;
+  }
   DEEP_SLEEP_TIMEOUT = theme.timings.deepSleepTimeout;
   YAWN_DURATION = theme.timings.yawnDuration;
   WAKE_DURATION = theme.timings.wakeDuration;

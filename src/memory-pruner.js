@@ -1,6 +1,7 @@
 "use strict";
 
 const { createDefaultIndex, normalizeSnapshotList } = require("./memory-store");
+const { computeBadges, computeGrowth } = require("./growth-system");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RETENTION = Object.freeze({
@@ -133,6 +134,7 @@ function computeIndex(memory, nowMs) {
     ...(memory.months || []),
   ].filter(Boolean);
   const agentCounts = {};
+  const projectCounts = {};
   let highestDailyActiveMs = 0;
   let highestDailyAgentEvents = 0;
   let highestDate = "";
@@ -141,6 +143,7 @@ function computeIndex(memory, nowMs) {
     index.totals.sessions += snapshot.sessions || 0;
     index.totals.agentEvents += snapshot.agentEvents || 0;
     addMapCounts(agentCounts, snapshot.agents);
+    addMapCounts(projectCounts, snapshot.projects);
     if ((snapshot.activeMs || 0) > highestDailyActiveMs) {
       highestDailyActiveMs = snapshot.activeMs || 0;
       highestDate = snapshot.date;
@@ -156,18 +159,12 @@ function computeIndex(memory, nowMs) {
   index.records.highestDailyAgentEvents = highestDailyAgentEvents;
   index.records.date = highestDate;
   index.profile.topAgent = topKey(agentCounts);
-  index.level = resolveLevel(index.totals.activeMs, index.streak.longest);
+  index.growth = computeGrowth(index);
+  index.level = index.growth.levelId;
+  index.badges = computeBadges(index, agentCounts, projectCounts, memory.index && memory.index.badges, nowMs);
   index.milestones = mergeMilestones(memory.index && memory.index.milestones, detectMilestones(index, nowMs));
   index.updatedAt = nowMs;
   return index;
-}
-
-function resolveLevel(activeMs, longestStreak) {
-  const hours = activeMs / (60 * 60 * 1000);
-  if (hours >= 200 && longestStreak >= 100) return "best_friend";
-  if (hours >= 50 && longestStreak >= 30) return "partner";
-  if (hours >= 10) return "familiar";
-  return "first_meet";
 }
 
 function milestone(type, value, nowMs) {

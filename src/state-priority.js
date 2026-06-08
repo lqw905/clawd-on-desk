@@ -12,6 +12,7 @@ const STATE_PRIORITY = Object.freeze({
   notification: 7,
   sweeping: 6,
   attention: 5,
+  "companion-unlock": 5,
   "companion-record": 4,
   carrying: 4,
   juggling: 4,
@@ -21,6 +22,7 @@ const STATE_PRIORITY = Object.freeze({
   thinking: 2,
   idle: 1,
   "mini-companion-record": 1,
+  "mini-companion-unlock": 1,
   "mini-companion-work-reminder": 1,
   "mini-companion-reunion": 1,
   sleeping: 0,
@@ -35,9 +37,11 @@ const ONESHOT_STATE_NAMES = [
   "companion-reunion",
   "companion-work-reminder",
   "companion-record",
+  "companion-unlock",
   "mini-companion-reunion",
   "mini-companion-work-reminder",
   "mini-companion-record",
+  "mini-companion-unlock",
 ];
 
 const SLEEP_SEQUENCE = new Set(SLEEP_SEQUENCE_STATES);

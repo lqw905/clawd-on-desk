@@ -8,11 +8,13 @@ function ts(date) {
   return new Date(`${date}T12:00:00`).getTime();
 }
 
-function memory(lastActiveDate, milestones = []) {
+function memory(lastActiveDate, milestones = [], extras = {}) {
   return {
     index: {
       streak: { lastActiveDate },
       milestones,
+      growth: extras.growth || { levelId: extras.level || "first_meet" },
+      badges: extras.badges || [],
     },
   };
 }
@@ -71,6 +73,23 @@ describe("companion behavior engine", () => {
     companion.observeSessionEvent({ sessionId: "s1", state: "idle", event: "Stop", opts: {} });
 
     assert.strictEqual(companion.resolveDisplayState("idle"), "companion-record");
+  });
+
+  it("queues an unlock cue when growth level or badges change", () => {
+    let now = ts("2026-06-08");
+    let badgeList = [];
+    let level = "first_meet";
+    const companion = createCompanion({
+      now: () => now,
+      getMemorySnapshot: () => memory("2026-06-08", [], { level, badges: badgeList }),
+      config: { globalCueCooldownMs: 0 },
+    });
+
+    badgeList = [{ id: "ten_sessions", name: "Ten Sessions" }];
+    level = "familiar";
+    companion.observeSessionEvent({ sessionId: "s1", state: "working", event: "PostToolUse", opts: {} });
+
+    assert.strictEqual(companion.resolveDisplayState("working"), "companion-unlock");
   });
 
   it("does not play pending cues while do-not-disturb is active", () => {

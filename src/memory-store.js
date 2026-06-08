@@ -29,6 +29,16 @@ function createDefaultIndex(deviceId) {
     },
     profile: { chronotype: "", peakDay: "", topAgent: "" },
     level: "first_meet",
+    growth: {
+      levelId: "first_meet",
+      levelName: "First meet",
+      score: 0,
+      nextLevelId: "familiar",
+      nextLevelName: "Familiar",
+      nextLevelScore: 600,
+      progress: 0,
+    },
+    badges: [],
     milestones: [],
     updatedAt: 0,
   };
@@ -78,6 +88,40 @@ function normalizeMilestones(value) {
   return out;
 }
 
+function normalizeGrowth(raw) {
+  if (!isPlainObject(raw)) return createDefaultIndex("").growth;
+  return {
+    levelId: normalizeString(raw.levelId, "first_meet") || "first_meet",
+    levelName: normalizeString(raw.levelName, "First meet") || "First meet",
+    score: normalizeNumber(raw.score),
+    nextLevelId: normalizeString(raw.nextLevelId),
+    nextLevelName: normalizeString(raw.nextLevelName),
+    nextLevelScore: normalizeNumber(raw.nextLevelScore),
+    progress: Math.max(0, Math.min(1, normalizeNumber(raw.progress))),
+  };
+}
+
+function normalizeBadges(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const item of value) {
+    if (!isPlainObject(item)) continue;
+    const id = normalizeString(item.id).trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push({
+      id,
+      name: normalizeString(item.name).trim(),
+      description: normalizeString(item.description).trim(),
+      category: normalizeString(item.category).trim(),
+      unlockedAt: normalizeNumber(item.unlockedAt),
+      date: normalizeString(item.date).trim(),
+    });
+  }
+  return out.sort((a, b) => (a.unlockedAt || 0) - (b.unlockedAt || 0) || a.id.localeCompare(b.id));
+}
+
 function normalizeIndex(raw, deviceId) {
   const base = createDefaultIndex(deviceId);
   if (!isPlainObject(raw)) return base;
@@ -110,6 +154,8 @@ function normalizeIndex(raw, deviceId) {
       topAgent: normalizeString(profile.topAgent),
     },
     level: normalizeString(raw.level, base.level) || base.level,
+    growth: normalizeGrowth(raw.growth),
+    badges: normalizeBadges(raw.badges),
     milestones: normalizeMilestones(raw.milestones),
     updatedAt: normalizeNumber(raw.updatedAt),
   };
